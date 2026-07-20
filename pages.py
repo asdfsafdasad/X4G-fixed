@@ -80,7 +80,7 @@ input:focus+.ic{color:var(--accent)}
       </div>
       <button class="btn" type="submit" id="btn"><i class="ti ti-login-2"></i> ورود به داشبورد</button>
     </form>
-    <div class="footer">پشتیبانی <a href="https://t.me/Farajian2004f" target="_blank"><i class="ti ti-brand-telegram"></i>@Farajian2004f</a></div>
+    <div class="footer">پشتیبانی <a href="https://t.me/X4GHUB" target="_blank"><i class="ti ti-brand-telegram"></i>@X4GHUB</a></div>
   </div>
 </div>
 <script>
@@ -821,7 +821,7 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="dash-footer">
     <span class="df-text">X4G v9.5 · Railway</span>
-    <a class="df-link" href="https://t.me/Farajian2004f" target="_blank"><i class="ti ti-brand-telegram"></i> t.me/Farajian2004f</a>
+    <a class="df-link" href="https://t.me/X4GHUB" target="_blank"><i class="ti ti-brand-telegram"></i> t.me/X4GHUB</a>
     
   </div>
 </section>
@@ -1171,17 +1171,13 @@ a{color:inherit;text-decoration:none}
         <div class="srv-tile-icon"><i class="ti ti-brand-youtube"></i></div>
         <div class="srv-tile-text"><div class="srv-tile-label">یوتیوب</div><div class="srv-tile-val">youtube.com/@X4GHUB</div></div>
       </a>
-      <a class="srv-tile" href="https://t.me/Farajian2004m" target="_blank" style="text-decoration:none;cursor:pointer">
-        <div class="srv-tile-icon"><i class="ti ti-brand-telegram"></i></div>
-        <div class="srv-tile-text"><div class="srv-tile-label">آیدی تلگرام</div><div class="srv-tile-val">@Farajian2004m</div></div>
-      </a>
       <a class="srv-tile" href="https://t.me/x4g_group" target="_blank" style="text-decoration:none;cursor:pointer">
         <div class="srv-tile-icon"><i class="ti ti-users-group"></i></div>
         <div class="srv-tile-text"><div class="srv-tile-label">گروه تلگرام</div><div class="srv-tile-val">t.me/x4g_group</div></div>
       </a>
-      <a class="srv-tile" href="https://t.me/vpnfreev2rayconfig" target="_blank" style="text-decoration:none;cursor:pointer">
+      <a class="srv-tile" href="https://t.me/X4GHUB" target="_blank" style="text-decoration:none;cursor:pointer">
         <div class="srv-tile-icon"><i class="ti ti-speakerphone"></i></div>
-        <div class="srv-tile-text"><div class="srv-tile-label">کانال تلگرام</div><div class="srv-tile-val">t.me/vpnfreev2rayconfig</div></div>
+        <div class="srv-tile-text"><div class="srv-tile-label">کانال تلگرام</div><div class="srv-tile-val">t.me/X4GHUB</div></div>
       </a>
       <a class="srv-tile" href="https://github.com/x4gKing" target="_blank" style="text-decoration:none;cursor:pointer">
         <div class="srv-tile-icon"><i class="ti ti-brand-github"></i></div>
@@ -1911,7 +1907,7 @@ html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:v
   <div id="root">
     <div class="empty-state"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>در حال بارگذاری...</div>
   </div>
-  <div class="footer">پشتیبانی: <a href="https://t.me/Farajian2004f" target="_blank">@Farajian2004f</a> · X4G v9.5</div>
+  <div class="footer">پشتیبانی: <a href="https://t.me/X4GHUB" target="_blank">@X4GHUB</a> · X4G v9.5</div>
 </div>
 <script>
 const UUID_KEY='{uuid_key}';
