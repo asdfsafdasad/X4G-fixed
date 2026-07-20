@@ -2186,6 +2186,10 @@ function renderContent(d){{
                   <i class="ti ti-copy"></i> کپی لینک
                 </button>
                 <button class="btn btn-g"
+                  onclick="location.href=window._x4gLinks[${{i}}].vless">
+                  <i class="ti ti-device-mobile"></i> باز کردن در اپ
+                </button>
+                <button class="btn btn-g"
                   onclick="showQR(window._x4gLinks[${{i}}].label, window._x4gLinks[${{i}}].vless)">
                   <i class="ti ti-qrcode"></i> QR
                 </button>
