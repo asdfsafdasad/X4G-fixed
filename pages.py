@@ -1419,7 +1419,6 @@ function renderLinksGrid(){
       <div class="cfg-actions">
         <button class="tog${allowed?' on':''}" onclick="toggleActive('${l.uuid}',${!l.active})" title="فعال/غیرفعال"></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک کپی شد','ok'))" title="کپی لینک"><i class="ti ti-copy"></i></button>
-        <button class="btn btn-sm btn-g btn-icon" onclick="location.href='${esc(l.vless_link)}'" title="باز کردن در اپ کلاینت (v2rayNG/Streisand/...)"><i class="ti ti-device-mobile"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="window.open('${esc(l.sub_url)}','_blank')" title="باز کردن داشبورد ساب"><i class="ti ti-rss"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="showQR('${esc(l.vless_link)}')" title="QR"><i class="ti ti-qrcode"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="openLinkChart('${l.uuid}','${esc(l.label)}')" title="نمودار مصرف ۳۰ روز اخیر"><i class="ti ti-chart-line"></i></button>
@@ -2031,6 +2030,20 @@ function showQR(label,link){{
   document.getElementById('qr-modal').classList.add('open');
 }}
 
+function openInApp(link){{
+  // v2rayNG لینک vless:// رو در کوئری‌استرینگ خودش می‌ذاره؛ اگه خودِ لینک بدون انکد اضافه بشه
+  // به‌خاطر & های داخل query کانفیگ، v2rayNG فقط تا اولین & رو می‌خونه و بقیه پارامترها گم می‌شن.
+  // پس باید کل لینک vless رو یک‌بار encodeURIComponent کرد.
+  const deepLink='v2rayng://install-config/?url='+encodeURIComponent(link);
+  const a=document.createElement('a');
+  a.href=deepLink;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(),1000);
+  toast('در حال باز کردن v2rayNG… اگه چیزی باز نشد، لینک رو کپی و به‌صورت دستی وارد کنید','info');
+}}
+
 function toggleLink(i){{
   const wrap=document.getElementById('vw-'+i);
   const btn=document.getElementById('vt-'+i);
@@ -2186,7 +2199,7 @@ function renderContent(d){{
                   <i class="ti ti-copy"></i> کپی لینک
                 </button>
                 <button class="btn btn-g"
-                  onclick="location.href=window._x4gLinks[${{i}}].vless">
+                  onclick="openInApp(window._x4gLinks[${{i}}].vless)">
                   <i class="ti ti-device-mobile"></i> باز کردن در اپ
                 </button>
                 <button class="btn btn-g"
