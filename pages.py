@@ -612,6 +612,14 @@ a{color:inherit;text-decoration:none}
 .cfg-exp-col{flex-shrink:0;min-width:110px}
 .cfg-badges-col{display:flex;flex-direction:column;gap:5px;flex-shrink:0;align-items:flex-end}
 .cfg-actions{display:flex;gap:5px;flex-shrink:0}
+.links-toolbar{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.bulk-selall{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none;flex-shrink:0}
+.bulk-selall input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--card-b);border-radius:14px;padding:10px 16px;margin-bottom:12px}
+.bulk-count{font-size:12.5px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:6px}
+.bulk-actions{display:flex;gap:6px;flex-wrap:wrap}
+.cfg-select{display:flex;align-items:center;flex-shrink:0}
+.cfg-select input{width:17px;height:17px;accent-color:var(--accent);cursor:pointer}
 .proto-chip{font-size:9px;padding:3px 8px;border-radius:6px;font-weight:700;white-space:nowrap}
 .pc-ws{background:var(--accent-d);color:var(--accent2)}
 .pc-xhttp{background:var(--purple-bg);color:#A78BFA}
@@ -731,6 +739,13 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-o" onclick="closeModal('modal-edit-link')">انصراف</button>
       <button class="btn btn-p" onclick="saveEditLink()"><i class="ti ti-check"></i> ذخیره تغییرات</button>
     </div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-link-chart">
+  <div class="modal" style="max-width:640px">
+    <button class="modal-close" onclick="closeModal('modal-link-chart')"><i class="ti ti-x"></i></button>
+    <div class="modal-title" id="lc-title"><i class="ti ti-chart-line"></i> نمودار مصرف</div>
+    <div style="height:280px;margin-top:10px"><canvas id="lc-canvas"></canvas></div>
   </div>
 </div>
 <div class="mob-top">
@@ -953,8 +968,29 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
   </div>
+  <div class="links-toolbar">
+    <div class="subs-search">
+      <i class="ti ti-search"></i>
+      <input id="links-search" placeholder="جستجو بر اساس نام، یادداشت یا UUID..." oninput="renderLinksGrid()">
+    </div>
+    <label class="bulk-selall">
+      <input type="checkbox" id="links-selall" onchange="toggleSelectAllLinks(this)">
+      <span>انتخاب همه</span>
+    </label>
+  </div>
+  <div class="bulk-bar" id="links-bulkbar" style="display:none">
+    <span class="bulk-count"><i class="ti ti-checkbox"></i> <span id="links-selcount">۰</span> کانفیگ انتخاب شده</span>
+    <div class="bulk-actions">
+      <button class="btn btn-sm btn-g" onclick="bulkLinksAction('activate')"><i class="ti ti-circle-check"></i> فعال‌سازی</button>
+      <button class="btn btn-sm btn-g" onclick="bulkLinksAction('deactivate')"><i class="ti ti-circle-x"></i> غیرفعال‌سازی</button>
+      <button class="btn btn-sm btn-g" onclick="bulkLinksAction('reset')"><i class="ti ti-rotate"></i> ریست مصرف</button>
+      <button class="btn btn-sm btn-d" onclick="bulkLinksAction('delete')"><i class="ti ti-trash"></i> حذف</button>
+      <button class="btn btn-sm btn-o" onclick="clearLinksSelection()"><i class="ti ti-x"></i> لغو انتخاب</button>
+    </div>
+  </div>
   <div class="cfg-grid" id="links-grid"></div>
   <div class="empty" id="links-empty" style="display:none"><i class="ti ti-link-off"></i><p>هنوز کانفیگی وجود ندارد</p></div>
+  <div class="empty" id="links-empty-search" style="display:none"><i class="ti ti-search-off"></i><p>موردی با این جستجو پیدا نشد</p></div>
 </section>
 <section class="pg" id="pg-traffic">
   <div class="topbar">
@@ -1316,25 +1352,46 @@ async function loadActivity(){
   }catch(e){console.error(e)}
 }
 let allLinksList=[];
+let selectedLinks=new Set();
 async function loadLinks(){
   try{
     const r=await authF('/api/links');
     const {links=[]}=await r.json();
     allLinksList=links;
+    const validUuids=new Set(links.map(l=>l.uuid));
+    selectedLinks.forEach(u=>{if(!validUuids.has(u))selectedLinks.delete(u)});
     document.getElementById('links-nb').textContent=links.length;
     document.getElementById('links-pg-cnt').textContent=toFa(links.length)+' کانفیگ';
     document.getElementById('lsummary-badge').textContent=toFa(links.length);
-    const grid=document.getElementById('links-grid'),empty=document.getElementById('links-empty');
-    if(!links.length){grid.innerHTML='';empty.style.display='block';document.getElementById('lsummary').innerHTML='<div class="empty"><i class="ti ti-link-off"></i><p>کانفیگی وجود ندارد</p></div>';return}
-    empty.style.display='none';
-    grid.innerHTML=links.map(l=>{
+    document.getElementById('lsummary').innerHTML=links.length?links.slice(0,6).map(l=>`<div class="sr"><span class="sr-k" style="gap:5px"><i class="ti ${l.expired?'ti-calendar-x':l.active?'ti-circle-check':'ti-circle-x'}" style="color:${l.expired?'var(--amber)':l.active?'var(--green)':'var(--red)'}"></i>${esc(l.label)}</span><span class="sr-v" style="font-size:10px">${fmtB(l.used_bytes)} / ${l.limit_bytes===0?'∞':fmtB(l.limit_bytes)}</span></div>`).join(''):'<div class="empty"><i class="ti ti-link-off"></i><p>کانفیگی وجود ندارد</p></div>';
+    renderLinksGrid();
+  }catch(e){console.error(e)}
+}
+function filteredLinksList(){
+  const q=(document.getElementById('links-search')?.value||'').trim().toLowerCase();
+  if(!q)return allLinksList;
+  return allLinksList.filter(l=>
+    (l.label||'').toLowerCase().includes(q) ||
+    (l.note||'').toLowerCase().includes(q) ||
+    (l.uuid||'').toLowerCase().includes(q)
+  );
+}
+function renderLinksGrid(){
+  const links=filteredLinksList();
+  const grid=document.getElementById('links-grid'),empty=document.getElementById('links-empty'),emptySearch=document.getElementById('links-empty-search');
+  if(!allLinksList.length){grid.innerHTML='';empty.style.display='block';emptySearch.style.display='none';updateBulkBar();return}
+  if(!links.length){grid.innerHTML='';empty.style.display='none';emptySearch.style.display='block';updateBulkBar();return}
+  empty.style.display='none';emptySearch.style.display='none';
+  grid.innerHTML=links.map(l=>{
   const lim=l.limit_bytes===0?'∞':fmtB(l.limit_bytes);
   const pct=l.limit_bytes===0?0:Math.min(100,l.used_bytes/l.limit_bytes*100);
   const bc=pct>90?'var(--red)':pct>70?'var(--amber)':'var(--accent)';
   const allowed=l.active&&!l.expired;
   const cardCls=!l.active?'is-off':(l.expired?'is-exp':'');
+  const checked=selectedLinks.has(l.uuid)?'checked':'';
   return `<div class="cfg-card ${cardCls}">
     <div class="cfg-row">
+      <span class="cfg-select"><input type="checkbox" ${checked} onchange="toggleLinkSelect('${l.uuid}',this)" title="انتخاب"></span>
       <span class="cfg-status-dot ${allowed?'pulse':''}"></span>
       <div class="cfg-identity">
         <div class="cfg-label">${esc(l.label)}</div>
@@ -1362,8 +1419,10 @@ async function loadLinks(){
       <div class="cfg-actions">
         <button class="tog${allowed?' on':''}" onclick="toggleActive('${l.uuid}',${!l.active})" title="فعال/غیرفعال"></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک کپی شد','ok'))" title="کپی لینک"><i class="ti ti-copy"></i></button>
+        <button class="btn btn-sm btn-g btn-icon" onclick="location.href='${esc(l.vless_link)}'" title="باز کردن در اپ کلاینت (v2rayNG/Streisand/...)"><i class="ti ti-device-mobile"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="window.open('${esc(l.sub_url)}','_blank')" title="باز کردن داشبورد ساب"><i class="ti ti-rss"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="showQR('${esc(l.vless_link)}')" title="QR"><i class="ti ti-qrcode"></i></button>
+        <button class="btn btn-sm btn-g btn-icon" onclick="openLinkChart('${l.uuid}','${esc(l.label)}')" title="نمودار مصرف ۳۰ روز اخیر"><i class="ti ti-chart-line"></i></button>
         <button class="btn btn-sm btn-amber btn-icon" onclick="openEditLink('${l.uuid}')" title="ویرایش"><i class="ti ti-edit"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="resetUsage('${l.uuid}')" title="ریست مصرف"><i class="ti ti-rotate"></i></button>
         <button class="btn btn-sm btn-d btn-icon" onclick="deleteLink('${l.uuid}')" title="حذف"><i class="ti ti-trash"></i></button>
@@ -1371,8 +1430,58 @@ async function loadLinks(){
     </div>
   </div>`;
 }).join('');
-    document.getElementById('lsummary').innerHTML=links.slice(0,6).map(l=>`<div class="sr"><span class="sr-k" style="gap:5px"><i class="ti ${l.expired?'ti-calendar-x':l.active?'ti-circle-check':'ti-circle-x'}" style="color:${l.expired?'var(--amber)':l.active?'var(--green)':'var(--red)'}"></i>${esc(l.label)}</span><span class="sr-v" style="font-size:10px">${fmtB(l.used_bytes)} / ${l.limit_bytes===0?'∞':fmtB(l.limit_bytes)}</span></div>`).join('');
-  }catch(e){console.error(e)}
+  updateBulkBar();
+}
+function toggleLinkSelect(uuid,el){
+  if(el.checked)selectedLinks.add(uuid);else selectedLinks.delete(uuid);
+  updateBulkBar();
+}
+function toggleSelectAllLinks(el){
+  const list=filteredLinksList();
+  if(el.checked)list.forEach(l=>selectedLinks.add(l.uuid));
+  else list.forEach(l=>selectedLinks.delete(l.uuid));
+  renderLinksGrid();
+}
+function clearLinksSelection(){selectedLinks.clear();renderLinksGrid();}
+function updateBulkBar(){
+  const bar=document.getElementById('links-bulkbar');
+  const selall=document.getElementById('links-selall');
+  const n=selectedLinks.size;
+  document.getElementById('links-selcount').textContent=toFa(n);
+  bar.style.display=n>0?'flex':'none';
+  const list=filteredLinksList();
+  selall.checked=list.length>0&&list.every(l=>selectedLinks.has(l.uuid));
+}
+async function bulkLinksAction(action){
+  const uuids=Array.from(selectedLinks);
+  if(!uuids.length)return;
+  if(action==='delete'&&!confirm(`حذف ${toFa(uuids.length)} کانفیگ انتخاب‌شده؟ این عمل غیرقابل بازگشت است.`))return;
+  try{
+    await Promise.all(uuids.map(uuid=>{
+      if(action==='activate')return authF('/api/links/'+uuid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:true})});
+      if(action==='deactivate')return authF('/api/links/'+uuid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:false})});
+      if(action==='reset')return authF('/api/links/'+uuid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({reset_usage:true})});
+      if(action==='delete')return authF('/api/links/'+uuid,{method:'DELETE'});
+    }));
+    const msg={activate:'کانفیگ‌های انتخاب‌شده فعال شدند ✓',deactivate:'کانفیگ‌های انتخاب‌شده غیرفعال شدند ✓',reset:'مصرف کانفیگ‌های انتخاب‌شده ریست شد ✓',delete:'کانفیگ‌های انتخاب‌شده حذف شدند ✓'}[action];
+    toast(msg,'ok');
+    if(action==='delete')selectedLinks.clear();
+    loadLinks();
+  }catch(e){toast('خطا در اجرای عملیات گروهی','err')}
+}
+let linkChart=null;
+async function openLinkChart(uuid,label){
+  document.getElementById('lc-title').textContent='نمودار مصرف ۳۰ روز اخیر — '+label;
+  openModal('modal-link-chart');
+  try{
+    const r=await authF('/api/links/'+uuid+'/history'),d=await r.json();
+    const labels=d.days.map(x=>x.date.slice(5));
+    const vals=d.days.map(x=>+(x.bytes/1024**2).toFixed(2));
+    const ctx=document.getElementById('lc-canvas');
+    if(linkChart)linkChart.destroy();
+    linkChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'مصرف (MB)',data:vals,backgroundColor:'rgba(139,92,246,.55)',borderRadius:5,maxBarThickness:22}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+  }catch(e){toast('خطا در دریافت تاریخچه مصرف','err')}
 }
 async function createLink(){
   const label=document.getElementById('nl-label').value.trim()||'کانفیگ جدید';

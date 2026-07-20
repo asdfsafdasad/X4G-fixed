@@ -78,6 +78,7 @@ async def load_state():
             data = json.loads(raw)
             LINKS.update(data.get("links", {}))
             SUBS.update(data.get("subs", {}))
+            LINK_DAILY.update(data.get("link_daily", {}))
             if "password_hash" in data:
                 AUTH["password_hash"] = data["password_hash"]
             # لینک پیش‌فرضی که در نسخه‌های قبلی به‌صورت خودکار ساخته می‌شد دیگر
@@ -98,6 +99,7 @@ async def save_state():
             data = {
                 "links": dict(LINKS),
                 "subs": dict(SUBS),
+                "link_daily": dict(LINK_DAILY),
                 "password_hash": AUTH["password_hash"],
                 "saved_at": datetime.now().isoformat(),
             }
@@ -124,6 +126,32 @@ LINKS: dict = {}
 LINKS_LOCK = asyncio.Lock()
 SUBS: dict = {}
 SUBS_LOCK = asyncio.Lock()
+
+# ── Per-link daily traffic history (برای نمودار مصرف روزانه‌ی هر کانفیگ) ───────
+# ساختار: { uuid: { "YYYY-MM-DD": bytes, ... }, ... } — فقط HISTORY_DAYS_KEEP روز آخر نگه داشته می‌شود.
+LINK_DAILY: dict = {}
+HISTORY_DAYS_KEEP = 30
+
+def record_link_daily(uid: str, nbytes: int):
+    """مصرف امروز (به وقت ایران) یک کانفیگ رو به تاریخچه‌ی روزانه‌ش اضافه می‌کنه
+    و روزهای قدیمی‌تر از HISTORY_DAYS_KEEP رو حذف می‌کنه تا حجم داده رشد نامحدود نکنه."""
+    if nbytes <= 0:
+        return
+    day = now_ir().strftime("%Y-%m-%d")
+    day_map = LINK_DAILY.setdefault(uid, {})
+    day_map[day] = day_map.get(day, 0) + nbytes
+    if len(day_map) > HISTORY_DAYS_KEEP + 5:
+        for old_day in sorted(day_map.keys())[: len(day_map) - HISTORY_DAYS_KEEP]:
+            day_map.pop(old_day, None)
+
+def link_daily_history(uid: str, days: int = HISTORY_DAYS_KEEP) -> list:
+    """آخرین `days` روز مصرف یک کانفیگ رو برمی‌گردونه (روزهای بدون مصرف هم با مقدار صفر پر می‌شن)."""
+    day_map = LINK_DAILY.get(uid, {})
+    out = []
+    for i in range(days - 1, -1, -1):
+        d = (now_ir() - timedelta(days=i)).strftime("%Y-%m-%d")
+        out.append({"date": d, "bytes": day_map.get(d, 0)})
+    return out
 
 # پروتکل‌های پشتیبانی‌شده برای هر کانفیگ
 PROTOCOLS = ("vless-ws", "xhttp")
@@ -619,6 +647,7 @@ async def remove_link(uid: str) -> str | None:
             return None
         label = LINKS[uid].get("label", uid)
         del LINKS[uid]
+    LINK_DAILY.pop(uid, None)
     asyncio.create_task(save_state())
     log_activity("link", f"کانفیگ «{label}» حذف شد", "err")
     return label
@@ -752,6 +781,18 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
 
     asyncio.create_task(save_state())
     return {"ok": True}
+
+@app.get("/api/links/{uid}/history")
+async def link_history(uid: str, _=Depends(require_auth)):
+    async with LINKS_LOCK:
+        exists = uid in LINKS
+    if not exists:
+        raise HTTPException(status_code=404, detail="link not found")
+    days = link_daily_history(uid, HISTORY_DAYS_KEEP)
+    return {
+        "uuid": uid,
+        "days": [{"date": d["date"], "bytes": d["bytes"], "bytes_fmt": fmt_bytes(d["bytes"])} for d in days],
+    }
 
 @app.delete("/api/links/{uid}")
 async def delete_link(uid: str, _=Depends(require_auth)):

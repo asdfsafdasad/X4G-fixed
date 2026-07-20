@@ -21,6 +21,7 @@ from main import (
     save_state,
     log_activity,
     now_ir,
+    record_link_daily,
 )
 from speed_limit import throttle
 
@@ -70,6 +71,7 @@ async def check_and_use(uid: str, n: int) -> bool:
         link["used_bytes"] += n
         stats["total_bytes"] += n
         hourly_traffic[now_ir().strftime("%H:00")] += n
+        record_link_daily(uid, n)
     return True
 
 async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
